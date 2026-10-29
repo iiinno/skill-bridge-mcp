@@ -11,7 +11,7 @@ export async function applyProposal(root, inputPath, { apply = false, backupRoot
   const { skill_id: id, expected_revision: revision, new_instructions: content } = proposal;
   if (typeof id !== "string" || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(id) ||
       typeof revision !== "string" || !/^[0-9a-f]{16}$/.test(revision) ||
-      typeof content !== "string" || Buffer.byteLength(content, "utf8") > 65536) {
+      typeof content !== "string" || Buffer.byteLength(content, "utf8") > 131072) {
     throw new Error("Malformed edit proposal");
   }
   if (parseMetadata(content).name !== id) throw new Error("Proposal name does not match skill");

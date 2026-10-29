@@ -60,7 +60,7 @@ function mcpForRequest() {
     inputSchema: {
       skill_id: z.string().min(1).max(64),
       expected_revision: z.string().regex(/^[a-f0-9]{16}$/),
-      new_instructions: z.string().min(1).max(65536)
+      new_instructions: z.string().min(1).max(131072)
     },
     annotations
   }, safe(async ({ skill_id, expected_revision, new_instructions }) =>
@@ -73,7 +73,7 @@ function mcpForRequest() {
       inputSchema: {
         skill_id: z.string().min(1).max(64),
         expected_revision: z.string().regex(/^[a-f0-9]{16}$/),
-        new_instructions: z.string().min(1).max(65536)
+        new_instructions: z.string().min(1).max(131072)
       },
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false }
     }, safe(async ({ skill_id, expected_revision, new_instructions }) =>

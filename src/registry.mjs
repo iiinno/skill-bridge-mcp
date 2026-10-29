@@ -8,7 +8,7 @@ import { scoreSkill } from "./ranker.mjs";
 const SKILL_NAME = /^(?=.{1,64}$)[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const RESOURCE_PART = /^[a-zA-Z0-9._-]+$/;
 const RESOURCE_EXTENSIONS = new Set([".md", ".txt", ".json", ".yaml", ".yml", ".csv"]);
-const MAX_SKILL_BYTES = 65536;
+const MAX_SKILL_BYTES = 131072;
 const MAX_RESOURCE_BYTES = 131072;
 const MAX_SKILLS = 2048;
 

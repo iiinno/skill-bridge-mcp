@@ -3,7 +3,7 @@ import path from "node:path";
 import { randomUUID, createHash } from "node:crypto";
 import { parseMetadata } from "./registry.mjs";
 
-const MAX_BYTES = 65536;
+const MAX_BYTES = 131072;
 const sha = (value) => createHash("sha256").update(value).digest("hex").slice(0, 16);
 function sampleDiff(before, after) {
   const a = before.split(/\r?\n/), b = after.split(/\r?\n/);
@@ -26,7 +26,7 @@ export class EditProposals {
   async preview(skillId, expectedRevision, newInstructions) {
     if (typeof newInstructions !== "string" ||
         Buffer.byteLength(newInstructions, "utf8") > MAX_BYTES) {
-      throw new Error("New SKILL.md must be UTF-8 text up to 64 KiB");
+      throw new Error("New SKILL.md must be UTF-8 text up to 128 KiB");
     }
     const existing = await this.registry.readSkill(skillId);
     if (existing.revision !== expectedRevision) {

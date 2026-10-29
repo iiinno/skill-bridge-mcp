@@ -13,7 +13,7 @@
 #>
 param(
   [Parameter(Position=0)]
-  [ValidateSet('setup','set-key','start','stop','status','doctor','register-startup','unregister-startup')]
+  [ValidateSet('setup','set-key','start','restart-mcp','stop','status','doctor','register-startup','unregister-startup')]
   [string]$Action = 'status',
   [string]$TunnelId
 )
@@ -100,7 +100,17 @@ function Start-McpIfNeeded {
   if (-not $node) { throw 'Node.js is not installed/on PATH.' }
   $logOut = Join-Path $runtimeHome 'skill-bridge.out.log'
   $logErr = Join-Path $runtimeHome 'skill-bridge.err.log'
-  $proc = Start-Process -FilePath $node.Source -ArgumentList 'server.mjs' -WorkingDirectory $project -WindowStyle Hidden -PassThru -RedirectStandardOutput $logOut -RedirectStandardError $logErr
+  # Skills Manager owns the library when installed. Preserve an explicit override.
+  $originalLibrary = [Environment]::GetEnvironmentVariable('SKILL_BRIDGE_SKILLS_DIR', 'Process')
+  $managerLibrary = Join-Path $env:USERPROFILE '.skills-manager\skills'
+  try {
+    if (-not $originalLibrary -and (Test-Path -LiteralPath $managerLibrary -PathType Container)) {
+      [Environment]::SetEnvironmentVariable('SKILL_BRIDGE_SKILLS_DIR', $managerLibrary, 'Process')
+    }
+    $proc = Start-Process -FilePath $node.Source -ArgumentList 'server.mjs' -WorkingDirectory $project -WindowStyle Hidden -PassThru -RedirectStandardOutput $logOut -RedirectStandardError $logErr
+  } finally {
+    [Environment]::SetEnvironmentVariable('SKILL_BRIDGE_SKILLS_DIR', $originalLibrary, 'Process')
+  }
   Set-Content -LiteralPath $mcpPidFile -Value $proc.Id
   Start-Sleep -Seconds 2
   if (-not (Local-McpHealthy)) { throw "Skill Bridge MCP did not become healthy. Inspect $logErr" }
@@ -169,6 +179,12 @@ switch ($Action) {
     Start-Sleep -Seconds 3
     Write-Output ('Tunnel ready: ' + (Tunnel-Ready))
     Write-Output 'For full verification, use status and a real ChatGPT tool call.'
+  }
+  'restart-mcp' {
+    Ensure-Dirs
+    Stop-OwnPid $mcpPidFile 'server.mjs'
+    Start-McpIfNeeded
+    Write-Output 'Only the dedicated Skill Bridge MCP process was restarted; tunnel-client and CoS were preserved.'
   }
   'stop' {
     Stop-OwnPid $clientPidFile '--profile skill-bridge'
