@@ -12,6 +12,10 @@ This project is community-maintained and **not an official OpenAI product**.
 | `search_skills` | Rank relevant skills for a task, including common Japanese/English terms |
 | `load_skill` | Read a complete `SKILL.md` and its revision hash |
 | `read_skill_resource` | Read text references from that skill's `references/` or `assets/` folder |
+| `read_github_markdown` | Read one explicit GitHub `.md` file with blob revision |
+| `propose_memory` (opt-in) | Create a reviewable memory candidate without changing external AgentMemory |
+| `list_memory_candidates` (opt-in) | Inspect candidate titles and status |
+| `search_approved_memories` (opt-in) | Search reviewed notes in the private Skill Bridge store |
 | `preview_skill_edit` | Validate and preview a version-checked proposed SKILL.md replacement, without modifying files |
 | `stage_skill_edit` | If enabled, privately save the change as a draft for explicit PC-side review and application |
 
