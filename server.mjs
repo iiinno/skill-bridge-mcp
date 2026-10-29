@@ -41,7 +41,13 @@ function mcpForRequest() {
     try {
       return textResult(await handler(input));
     } catch (error) {
-      return { isError: true, content: [{ type: "text", text: String(error.message || error) }] };
+      console.error("Tool call failed:", error);
+      // Filesystem errors embed absolute server paths in their messages.
+      // Keep the detail in the server log; return a generic text to clients.
+      const raw = String(error.message || error);
+      const leaksPath = (error && typeof error.code === "string") || raw.includes(skillsRoot);
+      const message = leaksPath ? "Skill data is unavailable" : raw;
+      return { isError: true, content: [{ type: "text", text: message }] };
     }
   };
 
