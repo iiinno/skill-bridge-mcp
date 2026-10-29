@@ -67,6 +67,13 @@ The recommended setup runs the MCP server **only on loopback** and uses an outbo
 
 For Skills Manager, the VPS can maintain a separate read-only private Git mirror with a dedicated SSH deploy key and five-minute systemd timer. The mirror lives outside this public repository. See [docs/SKILLS-MANAGER.md](docs/SKILLS-MANAGER.md).
 
+**Memory and Markdown integrations:** `read_github_markdown` reads one
+GitHub Markdown document and returns its source revision. A private,
+opt-in `SKILL_BRIDGE_MEMORY_DIR` activates memory proposals, manual
+approval and approved-note search. These features do not automatically
+ingest all ChatGPT conversations or write to an existing AgentMemory DB.
+See [docs/AGENT-MEMORY.md](docs/AGENT-MEMORY.md).
+
 Create a **dedicated Tunnel ID** for Skill Bridge; do not run the same Tunnel ID on two hosts at the same time. Secure MCP Tunnel uses a runtime Platform API key; it does not require calling a paid inference API to load skills. Check Platform's own service terms separately.
 
 ### Environment

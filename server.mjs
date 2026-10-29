@@ -6,11 +6,14 @@ import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/
 import { z } from "zod";
 import { SkillRegistry } from "./src/registry.mjs";
 import { EditProposals } from "./src/edit-proposals.mjs";
+import { MemoryBridge } from "./src/memory-bridge.mjs";
+import { readGithubMarkdown } from "./src/github-markdown.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const skillsRoot = process.env.SKILL_BRIDGE_SKILLS_DIR || path.join(here, "skill-library");
 const registry = new SkillRegistry(skillsRoot);
 const edits = new EditProposals(registry, process.env.SKILL_BRIDGE_PROPOSALS_DIR || "");
+const memories = new MemoryBridge(process.env.SKILL_BRIDGE_MEMORY_DIR || "");
 const host = process.env.SKILL_BRIDGE_HOST || "127.0.0.1";
 const port = Number(process.env.SKILL_BRIDGE_PORT ?? "8787");
 const secret = process.env.SKILL_BRIDGE_TOKEN || "";
@@ -93,6 +96,44 @@ function mcpForRequest() {
     inputSchema: { skill_id: z.string().min(1).max(64), relative_path: z.string().min(1).max(240) },
     annotations
   }, safe(async ({ skill_id, relative_path }) => await registry.readResource(skill_id, relative_path)));
+
+  server.registerTool("read_github_markdown", {
+    title: "Read one selected Markdown document from GitHub",
+    description: "Fetch an explicit GitHub Markdown file at a branch or commit. Returns text and blob SHA for source attribution. No arbitrary URL access.",
+    inputSchema: { owner: z.string().min(1).max(39), repo: z.string().min(1).max(100),
+      file_path: z.string().min(1).max(240), ref: z.string().min(1).max(128).optional() },
+    annotations
+  }, safe(async (args) => readGithubMarkdown(args,
+    { token: process.env.SKILL_BRIDGE_GITHUB_TOKEN || "" })));
+
+  if (memories.configured) {
+    server.registerTool("propose_memory", {
+      title: "Propose a durable memory from this conversation",
+      description: "Create one *pending* memory candidate with provenance. Only use when the user explicitly requests memory capture or approves the specific candidate. This is NOT automatically written to the PC's AgentMemory.",
+      inputSchema: {
+        title: z.string().min(2).max(180), content: z.string().min(5).max(10000),
+        kind: z.enum(["decision", "constraint", "lesson", "project", "reference", "conversation-summary"]),
+        source: z.enum(["chatgpt", "user", "github", "other"]),
+        source_ref: z.string().max(500).optional(),
+        tags: z.array(z.string().min(1).max(48)).max(12).optional()
+      },
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false }
+    }, safe(async (args) => memories.propose(args)));
+    server.registerTool("list_memory_candidates", {
+      title: "List pending or approved memory notes",
+      description: "List memory candidates and review status (no full conversation transcripts).",
+      inputSchema: { status: z.enum(["pending", "approved"]).optional(),
+        limit: z.number().int().min(1).max(100).optional() },
+      annotations
+    }, safe(async ({ status, limit }) =>
+      ({ notes: await memories.list(status || "pending", limit) })));
+    server.registerTool("search_approved_memories", {
+      title: "Search manually approved memory notes",
+      description: "Search only approved Skill Bridge memory notes. This is a local note index and does NOT query AgentMemory's native semantic memory database.",
+      inputSchema: { query: z.string().min(2).max(200), limit: z.number().int().min(1).max(20).optional() },
+      annotations
+    }, safe(async ({ query, limit }) => ({ notes: await memories.search(query, limit) })));
+  }
   return server;
 }
 

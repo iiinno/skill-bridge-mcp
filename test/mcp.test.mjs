@@ -48,7 +48,8 @@ test("MCP HTTP discovery, skill retrieval, hot reload and resource security", as
 
   const tools = await client.listTools();
   assert.deepEqual(tools.tools.map((x) => x.name).sort(),
-    ["list_skills", "load_skill", "preview_skill_edit", "read_skill_resource", "search_skills"]);
+    ["list_skills", "load_skill", "preview_skill_edit", "read_github_markdown",
+      "read_skill_resource", "search_skills"]);
   const skills = await client.callTool({ name: "list_skills", arguments: {} });
   assert.equal(skills.structuredContent.skills[0].id, "sample");
   const ranked = await client.callTool({ name: "search_skills", arguments: { query: "workflow" } });
@@ -76,6 +77,31 @@ test("token-protected HTTP server rejects missing credentials", async (t) => {
     body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/list", params: {} })
   });
   assert.equal(response.status, 401);
+});
+
+test("opt-in memory tools stage candidate without altering any external AgentMemory", async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "skill-bridge-mcp-memory-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const url = await startServer({ SKILL_BRIDGE_MEMORY_DIR: path.join(root, "queue") }, t);
+  const client = new Client({ name: "memory-bridge-test", version: "0.1.0" });
+  const transport = new StreamableHTTPClientTransport(new URL(url));
+  await client.connect(transport);
+  t.after(async () => { await client.close(); });
+  const available = (await client.listTools()).tools.map((tool) => tool.name);
+  for (const tool of ["propose_memory", "list_memory_candidates", "search_approved_memories"]) {
+    assert.ok(available.includes(tool), "MCP tool: " + tool);
+  }
+  const proposed = await client.callTool({ name: "propose_memory", arguments: {
+    title: "Architecture decision", content: "Use the stable path for the system.",
+    kind: "decision", source: "chatgpt", source_ref: "test-2026", tags: ["architecture"]
+  } });
+  assert.equal(proposed.structuredContent.status, "pending");
+  const pending = await client.callTool({ name: "list_memory_candidates", arguments: {} });
+  assert.equal(pending.structuredContent.notes.length, 1);
+  const approved = await client.callTool({ name: "search_approved_memories", arguments: {
+    query: "architecture"
+  } });
+  assert.deepEqual(approved.structuredContent.notes, []);
 });
 
 test("MCP blocks spoofed Host and Origin headers (DNS rebinding protection)", async (t) => {

@@ -102,14 +102,21 @@ function Start-McpIfNeeded {
   $logErr = Join-Path $runtimeHome 'skill-bridge.err.log'
   # Skills Manager owns the library when installed. Preserve an explicit override.
   $originalLibrary = [Environment]::GetEnvironmentVariable('SKILL_BRIDGE_SKILLS_DIR', 'Process')
+  $originalMemory = [Environment]::GetEnvironmentVariable('SKILL_BRIDGE_MEMORY_DIR', 'Process')
   $managerLibrary = Join-Path $env:USERPROFILE '.skills-manager\skills'
+  $memoryDir = Join-Path $env:LOCALAPPDATA 'SkillBridgeMemory'
   try {
     if (-not $originalLibrary -and (Test-Path -LiteralPath $managerLibrary -PathType Container)) {
       [Environment]::SetEnvironmentVariable('SKILL_BRIDGE_SKILLS_DIR', $managerLibrary, 'Process')
     }
+    if (-not $originalMemory) {
+      New-Item -Path $memoryDir -ItemType Directory -Force | Out-Null
+      [Environment]::SetEnvironmentVariable('SKILL_BRIDGE_MEMORY_DIR', $memoryDir, 'Process')
+    }
     $proc = Start-Process -FilePath $node.Source -ArgumentList 'server.mjs' -WorkingDirectory $project -WindowStyle Hidden -PassThru -RedirectStandardOutput $logOut -RedirectStandardError $logErr
   } finally {
     [Environment]::SetEnvironmentVariable('SKILL_BRIDGE_SKILLS_DIR', $originalLibrary, 'Process')
+    [Environment]::SetEnvironmentVariable('SKILL_BRIDGE_MEMORY_DIR', $originalMemory, 'Process')
   }
   Set-Content -LiteralPath $mcpPidFile -Value $proc.Id
   Start-Sleep -Seconds 2
