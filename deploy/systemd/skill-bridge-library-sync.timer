@@ -1,0 +1,12 @@
+[Unit]
+Description=Refresh Skill Bridge private skill library every five minutes
+
+[Timer]
+OnBootSec=1min
+OnUnitActiveSec=5min
+AccuracySec=1min
+Persistent=true
+Unit=skill-bridge-library-sync.service
+
+[Install]
+WantedBy=timers.target

@@ -5,10 +5,12 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { z } from "zod";
 import { SkillRegistry } from "./src/registry.mjs";
+import { EditProposals } from "./src/edit-proposals.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const skillsRoot = process.env.SKILL_BRIDGE_SKILLS_DIR || path.join(here, "skill-library");
 const registry = new SkillRegistry(skillsRoot);
+const edits = new EditProposals(registry, process.env.SKILL_BRIDGE_PROPOSALS_DIR || "");
 const host = process.env.SKILL_BRIDGE_HOST || "127.0.0.1";
 const port = Number(process.env.SKILL_BRIDGE_PORT ?? "8787");
 const secret = process.env.SKILL_BRIDGE_TOKEN || "";
@@ -40,10 +42,43 @@ function mcpForRequest() {
 
   server.registerTool("list_skills", {
     title: "Discover available skills",
-    description: "List the skill library on the connected Skill Bridge server. Use when the user asks what skills are available or specifies a type of workflow without a skill ID.",
-    inputSchema: { query: z.string().max(200).optional() },
+    description: "List the skill library on the connected Skill Bridge server. Optional keyword query and a bounded result limit.",
+    inputSchema: { query: z.string().max(200).optional(), limit: z.number().int().min(1).max(2048).optional() },
     annotations
-  }, safe(async ({ query }) => ({ skills: await registry.listSkills(query || "") })));
+  }, safe(async ({ query, limit }) => ({ skills: await registry.listSkills(query || "", limit) })));
+
+  server.registerTool("search_skills", {
+    title: "Find the best skill for a task",
+    description: "Rank relevant skill IDs using descriptions, tags, aliases, and common Japanese/English task keywords. Short metadata only; use load_skill to load the full chosen SKILL.md.",
+    inputSchema: { query: z.string().trim().min(1).max(200), limit: z.number().int().min(1).max(50).optional() },
+    annotations
+  }, safe(async ({ query, limit }) => ({ skills: await registry.searchSkills(query, limit) })));
+
+  server.registerTool("preview_skill_edit", {
+    title: "Preview a skill change with revision protection",
+    description: "Validate a proposed replacement SKILL.md and show a bounded change preview. This does NOT modify the library.",
+    inputSchema: {
+      skill_id: z.string().min(1).max(64),
+      expected_revision: z.string().regex(/^[a-f0-9]{16}$/),
+      new_instructions: z.string().min(1).max(65536)
+    },
+    annotations
+  }, safe(async ({ skill_id, expected_revision, new_instructions }) =>
+    edits.preview(skill_id, expected_revision, new_instructions)));
+
+  if (process.env.SKILL_BRIDGE_PROPOSALS_DIR) {
+    server.registerTool("stage_skill_edit", {
+      title: "Stage a skill edit for approval",
+      description: "Save a version-checked SKILL.md edit proposal on the private VPS. Does not alter Skills Manager, Git or live skill files. User must separately review and apply from managing PC.",
+      inputSchema: {
+        skill_id: z.string().min(1).max(64),
+        expected_revision: z.string().regex(/^[a-f0-9]{16}$/),
+        new_instructions: z.string().min(1).max(65536)
+      },
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false }
+    }, safe(async ({ skill_id, expected_revision, new_instructions }) =>
+      edits.stage(skill_id, expected_revision, new_instructions)));
+  }
 
   server.registerTool("load_skill", {
     title: "Load a SKILL.md workflow",

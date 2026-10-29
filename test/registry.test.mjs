@@ -48,3 +48,30 @@ test("registry rejects traversal, symlinks and invalid metadata", async (t) => {
     "---\nname: mismatch\ndescription: Does not match directory.\n---\n", "utf8");
   assert.equal((await reg.listSkills()).length, 0);
 });
+
+test("ranked search matches Japanese intent and updates revisions", async (t) => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), "skill-bridge-ranked-"));
+  t.after(() => rm(dir, { recursive: true, force: true }));
+  for (const [name, description, tags] of [
+    ["security-review", "Review code for security vulnerabilities", "security,review"],
+    ["docs-report", "Write reports and documents", "writing,report"],
+    ["unrelated", "Unrelated workflow", "misc"]
+  ]) {
+    await mkdir(path.join(dir, name));
+    await writeFile(path.join(dir, name, "SKILL.md"),
+      "---\nname: " + name + "\ndescription: " + description +
+      "\ntags: [" + tags + "]\n---\n\n# Skill\n");
+  }
+  const reg = new SkillRegistry(dir);
+  const review = await reg.searchSkills("セキュリティレビュー");
+  assert.equal(review[0].id, "security-review");
+  assert.equal(review.some((x) => x.id === "unrelated"), false);
+  assert.equal((await reg.searchSkills("資料", 1))[0].id, "docs-report");
+  assert.equal((await reg.listSkills("", 2)).length, 2);
+  const original = await reg.readSkill("docs-report");
+  assert.equal((await reg.readSkill("docs-report")).revision, original.revision);
+  await writeFile(path.join(dir, "docs-report", "SKILL.md"),
+    "---\nname: docs-report\ndescription: A new report workflow\n---\n\n# New step\n");
+  const next = await reg.readSkill("docs-report");
+  assert.notEqual(next.revision, original.revision);
+});

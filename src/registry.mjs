@@ -2,6 +2,7 @@ import { promises as fs, constants as fsConstants } from "node:fs";
 import path from "node:path";
 import { createHash } from "node:crypto";
 import YAML from "yaml";
+import { scoreSkill } from "./ranker.mjs";
 
 // Agent Skills naming convention: 1-64 lowercase alphanumerics / single hyphens.
 const SKILL_NAME = /^(?=.{1,64}$)[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -9,7 +10,7 @@ const RESOURCE_PART = /^[a-zA-Z0-9._-]+$/;
 const RESOURCE_EXTENSIONS = new Set([".md", ".txt", ".json", ".yaml", ".yml", ".csv"]);
 const MAX_SKILL_BYTES = 65536;
 const MAX_RESOURCE_BYTES = 131072;
-const MAX_SKILLS = 256;
+const MAX_SKILLS = 2048;
 
 async function readLimitedText(file, directory, maxBytes) {
   const realDirectory = await fs.realpath(directory);
@@ -31,6 +32,7 @@ async function readLimitedText(file, directory, maxBytes) {
 export class SkillRegistry {
   constructor(root) {
     this.root = path.resolve(root);
+    this.cache = new Map();
   }
 
   async rootPath() {
@@ -55,28 +57,48 @@ export class SkillRegistry {
     if (!stat.isFile() || stat.isSymbolicLink() || stat.size > MAX_SKILL_BYTES) {
       throw new Error("SKILL.md is unavailable or too large");
     }
+    const fingerprint = [stat.dev, stat.ino, stat.size, stat.mtimeMs, stat.ctimeMs].join(":");
+    const hit = this.cache.get(name);
+    if (hit?.fingerprint === fingerprint) return hit.skill;
     const content = await readLimitedText(file, dir, MAX_SKILL_BYTES);
     const meta = parseMetadata(content);
     if (meta.name !== name) throw new Error("Frontmatter name must equal skill directory name");
     const revision = createHash("sha256").update(content).digest("hex").slice(0, 16);
-    return { id: name, name: meta.name, description: meta.description, revision, instructions: content };
+    const skill = { id: name, name: meta.name, description: meta.description,
+      tags: meta.tags, aliases: meta.aliases, revision, instructions: content };
+    this.cache.set(name, { fingerprint, skill });
+    return skill;
   }
 
-  async listSkills(query = "") {
+  async listSkills(query = "", limit = MAX_SKILLS) {
     await this.rootPath();
     const entries = await fs.readdir(this.root, { withFileTypes: true });
-    const selected = entries.filter((entry) => entry.isDirectory() && SKILL_NAME.test(entry.name)).slice(0, MAX_SKILLS);
+    const selected = entries.filter((entry) => entry.isDirectory() && SKILL_NAME.test(entry.name))
+      .sort((a, b) => a.name.localeCompare(b.name)).slice(0, MAX_SKILLS);
     const loaded = await Promise.all(selected.map(async (entry) => {
       try {
-        const { id, description, revision } = await this.readSkill(entry.name);
-        return { id, description, revision };
+        const { id, description, tags, aliases, revision } = await this.readSkill(entry.name);
+        return { id, description, tags, aliases, revision };
       } catch {
         return null; // Bad or incomplete skills are not exposed.
       }
     }));
-    const needle = query.trim().toLowerCase();
-    return loaded.filter(Boolean).filter((skill) =>
-      !needle || (skill.id + " " + skill.description).toLowerCase().includes(needle));
+    return loaded.filter(Boolean).map((skill) => ({ ...skill, ...scoreSkill(skill, query) }))
+      .filter((skill) => !query.trim() || skill.score > 0)
+      .sort((a, b) => b.score - a.score || a.id.localeCompare(b.id))
+      .slice(0, Math.max(1, Math.min(limit, MAX_SKILLS)))
+      .map(({ score, reason, ...skill }) => skill);
+  }
+
+  async searchSkills(query, limit = 12) {
+    if (typeof query !== "string" || !query.trim() || query.length > 200) {
+      throw new Error("Provide a nonempty query (max 200 characters)");
+    }
+    const candidates = await this.listSkills();
+    return candidates.map((skill) => ({ ...skill, ...scoreSkill(skill, query) }))
+      .filter((skill) => skill.score > 0)
+      .sort((a, b) => b.score - a.score || a.id.localeCompare(b.id))
+      .slice(0, Math.max(1, Math.min(limit, 50)));
   }
 
   async readResource(name, relativePath) {
@@ -104,7 +126,7 @@ export class SkillRegistry {
   }
 }
 
-function parseMetadata(content) {
+export function parseMetadata(content) {
   const normalized = content.replace(/^\uFEFF/, "");
   const match = normalized.match(/^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/);
   if (!match) throw new Error("SKILL.md must start with YAML frontmatter");
@@ -114,5 +136,9 @@ function parseMetadata(content) {
   if (typeof meta.description !== "string" || meta.description.trim().length < 1 || meta.description.length > 1024) {
     throw new Error("Invalid description");
   }
-  return { name: meta.name, description: meta.description };
+  const strings = (v) => Array.isArray(v)
+    ? v.filter((item) => typeof item === "string" && item.length <= 80).slice(0, 24)
+    : [];
+  return { name: meta.name, description: meta.description,
+    tags: strings(meta.tags), aliases: strings(meta.aliases) };
 }

@@ -1,0 +1,14 @@
+[Unit]
+Description=Update Skill Bridge's read-only private Skills Manager mirror
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=%h/services/skill-bridge-mcp
+ExecStart=/bin/bash %h/services/skill-bridge-mcp/deploy/linux/sync-library.sh
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=%h/services/skill-bridge-private-library

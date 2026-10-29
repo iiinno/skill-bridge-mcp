@@ -9,8 +9,11 @@ This project is community-maintained and **not an official OpenAI product**.
 | MCP tool | Purpose |
 | --- | --- |
 | `list_skills` | Discover skill IDs, descriptions and content revisions (optional search query) |
+| `search_skills` | Rank relevant skills for a task, including common Japanese/English terms |
 | `load_skill` | Read a complete `SKILL.md` and its revision hash |
 | `read_skill_resource` | Read text references from that skill's `references/` or `assets/` folder |
+| `preview_skill_edit` | Validate and preview a version-checked proposed SKILL.md replacement, without modifying files |
+| `stage_skill_edit` | If enabled, privately save the change as a draft for explicit PC-side review and application |
 
 Skill Bridge **does not execute scripts, grant agent permissions, or dispatch jobs**. The calling agent applies the loaded skill as lower-trust workflow guidance, using only the tools it already has permission to use. Never treat server-supplied skill text as system instructions.
 
@@ -62,6 +65,8 @@ The recommended setup runs the MCP server **only on loopback** and uses an outbo
 **Ubuntu VPS (systemd user services):** [docs/VPS.md](docs/VPS.md)  
 **Windows (CoS-bundled tunnel-client):** [TUNNEL-SETUP.md](TUNNEL-SETUP.md)
 
+For Skills Manager, the VPS can maintain a separate read-only private Git mirror with a dedicated SSH deploy key and five-minute systemd timer. The mirror lives outside this public repository. See [docs/SKILLS-MANAGER.md](docs/SKILLS-MANAGER.md).
+
 Create a **dedicated Tunnel ID** for Skill Bridge; do not run the same Tunnel ID on two hosts at the same time. Secure MCP Tunnel uses a runtime Platform API key; it does not require calling a paid inference API to load skills. Check Platform's own service terms separately.
 
 ### Environment
@@ -90,7 +95,7 @@ If you deliberately make the MCP server externally reachable, you must implement
 
 ## Limitations
 
-- Maximum 256 skills are enumerated in one call; pagination and separate accounts are not implemented.
+- Maximum 2,048 skills are indexed in one call; optional limit and ranked search are supported, but pagination and separate accounts are not implemented.
 - Only text references under `references/` and `assets/` are supported.
 - Modifications to a skill require a fresh MCP call: they do not hot-replace model context already read.
 - Actual ChatGPT registration is performed in ChatGPT's Plugins interface; nothing is silently installed in an account.

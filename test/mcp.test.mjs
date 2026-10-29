@@ -48,9 +48,11 @@ test("MCP HTTP discovery, skill retrieval, hot reload and resource security", as
 
   const tools = await client.listTools();
   assert.deepEqual(tools.tools.map((x) => x.name).sort(),
-    ["list_skills", "load_skill", "read_skill_resource"]);
+    ["list_skills", "load_skill", "preview_skill_edit", "read_skill_resource", "search_skills"]);
   const skills = await client.callTool({ name: "list_skills", arguments: {} });
   assert.equal(skills.structuredContent.skills[0].id, "sample");
+  const ranked = await client.callTool({ name: "search_skills", arguments: { query: "workflow" } });
+  assert.equal(ranked.structuredContent.skills[0].id, "sample");
   const first = await client.callTool({ name: "load_skill", arguments: { skill_id: "sample" } });
   assert.match(first.structuredContent.instructions, /Initial/);
   await writeFile(path.join(dir, "sample", "SKILL.md"),
