@@ -78,6 +78,19 @@ sudo loginctl enable-linger "$(whoami)"
 
 ## Cutover and rollback
 
+On a Windows machine already running the dedicated Skill Bridge tunnel, use the
+interactive migration helper to re-enter a possibly mistyped runtime key on
+the VPS and validate it before switching hosts:
+
+~~~powershell
+.\scripts\migrate-tunnel-to-vps.ps1 -SshTarget user@your-vps-tailnet-ip
+~~~
+
+The helper never reads the clipboard itself or prints the runtime key. It
+stops only the Windows Skill Bridge tunnel, not CoS. If the VPS authentication
+or readiness check fails, it stops the VPS tunnel before restoring Windows.
+The final ChatGPT \`list_skills\` call is still needed as an end-to-end check.
+
 1. Confirm the VPS MCP endpoint passes local tests and has the desired skills.
 2. Stop **only** the old Windows *Skill Bridge* tunnel process (not CoS or any other tunnel).
 3. Start the VPS tunnel using the same dedicated ID.
