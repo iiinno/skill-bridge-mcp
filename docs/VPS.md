@@ -33,6 +33,14 @@ Create a dedicated OpenAI Platform tunnel and runtime API key (Tunnels Read + Us
 
 The directory must be 0700 and the key file must be 0600. Never pass the secret in a CLI argument or commit it. Provision via a trusted secret manager or encrypted-to-SSH local transfer. If migrating from Windows, the DPAPI-encrypted local key is **not directly readable on Linux**; transfer via an authorized local secure helper or issue a replacement runtime key.
 
+To enter a runtime key interactively without echoing it to the screen, use:
+
+```sh
+ssh -tt user@your-vps 'bash ~/services/skill-bridge-mcp/deploy/linux/enter-runtime-key.sh'
+```
+
+Paste the key at the hidden prompt. It is saved on the VPS with file permissions 0600.
+
 ```sh
 mkdir -p ~/.config/skill-bridge-mcp/profiles ~/.local/state/skill-bridge-mcp
 chmod 700 ~/.config/skill-bridge-mcp ~/.config/skill-bridge-mcp/profiles ~/.local/state/skill-bridge-mcp

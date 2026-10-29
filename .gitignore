@@ -14,3 +14,4 @@ runtime.env
 .vscode/
 .local/
 .tmp/
+bin/
