@@ -104,6 +104,38 @@ test("opt-in memory tools stage candidate without altering any external AgentMem
   assert.deepEqual(approved.structuredContent.notes, []);
 });
 
+test("Markdown-first memory tools work end-to-end via MCP", async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "skill-bridge-markdown-mcp-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const url = await startServer({ SKILL_BRIDGE_MARKDOWN_MEMORY_DIR: path.join(root, "memory") }, t);
+  const client = new Client({ name: "markdown-memory-test", version: "0.1.0" });
+  const transport = new StreamableHTTPClientTransport(new URL(url));
+  await client.connect(transport);
+  t.after(async () => client.close());
+  const available = (await client.listTools()).tools.map((x) => x.name);
+  for (const name of ["memory_search", "memory_get", "memory_list", "memory_propose",
+    "memory_save", "memory_approve", "memory_update", "memory_archive"]) {
+    assert.ok(available.includes(name), "Missing " + name);
+  }
+  const args = { title: "Skill Bridge記憶システム", content: "VPSのMarkdownに記憶を保存する。",
+    kind: "decision", source: "chatgpt", source_ref: "test-chat",
+    tags: ["memory", "VPS"] };
+  const proposed = await client.callTool({ name: "memory_propose", arguments: args });
+  assert.equal(proposed.structuredContent.status, "pending");
+  const before = await client.callTool({ name: "memory_search", arguments: { query: "記憶" } });
+  assert.equal(before.structuredContent.memories.length, 0);
+  const approved = await client.callTool({ name: "memory_approve", arguments: {
+    id: proposed.structuredContent.id, expected_revision: proposed.structuredContent.revision
+  } });
+  assert.equal(approved.structuredContent.status, "active");
+  const after = await client.callTool({ name: "memory_search", arguments: { query: "記憶" } });
+  assert.equal(after.structuredContent.memories.length, 1);
+  const loaded = await client.callTool({ name: "memory_get", arguments: {
+    id: proposed.structuredContent.id
+  } });
+  assert.equal(loaded.structuredContent.content, args.content);
+});
+
 test("MCP blocks spoofed Host and Origin headers (DNS rebinding protection)", async (t) => {
   const url = await startServer({}, t);
   const body = JSON.stringify({

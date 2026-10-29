@@ -1,0 +1,5 @@
+# Install as ~/.config/systemd/user/skill-bridge-mcp.service.d/markdown-memory.conf
+# Markdown files are always stored outside the public Skill Bridge repo.
+[Service]
+Environment=SKILL_BRIDGE_MARKDOWN_MEMORY_DIR=%h/.local/share/skill-bridge-memory
+ReadWritePaths=%h/.local/share/skill-bridge-memory

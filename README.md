@@ -16,6 +16,10 @@ This project is community-maintained and **not an official OpenAI product**.
 | `propose_memory` (opt-in) | Create a reviewable memory candidate without changing external AgentMemory |
 | `list_memory_candidates` (opt-in) | Inspect candidate titles and status |
 | `search_approved_memories` (opt-in) | Search reviewed notes in the private Skill Bridge store |
+| `memory_search` (opt-in) | Search active, persistent Markdown memories without external APIs |
+| `memory_get` / `memory_list` (opt-in) | Retrieve and browse individual Markdown memory files |
+| `memory_propose` / `memory_save` (opt-in) | Propose or explicitly save new durable Markdown memories |
+| `memory_approve` / `memory_update` / `memory_archive` (opt-in) | Review, revise and archive using optimistic revision checks |
 | `preview_skill_edit` | Validate and preview a version-checked proposed SKILL.md replacement, without modifying files |
 | `stage_skill_edit` | If enabled, privately save the change as a draft for explicit PC-side review and application |
 
@@ -77,6 +81,12 @@ opt-in `SKILL_BRIDGE_MEMORY_DIR` activates memory proposals, manual
 approval and approved-note search. These features do not automatically
 ingest all ChatGPT conversations or write to an existing AgentMemory DB.
 See [docs/AGENT-MEMORY.md](docs/AGENT-MEMORY.md).
+
+**New standalone Markdown-first memory:** set `SKILL_BRIDGE_MARKDOWN_MEMORY_DIR`
+to enable a minimal file-based memory system on your own VPS. Its `.md` files
+are the canonical data; no Mem0/Hindsight/PostgreSQL/embedding API is required.
+It is independent of the previous JSON review queue and the local AgentMemory
+database. See [docs/MARKDOWN-MEMORY.md](docs/MARKDOWN-MEMORY.md).
 
 Create a **dedicated Tunnel ID** for Skill Bridge; do not run the same Tunnel ID on two hosts at the same time. Secure MCP Tunnel uses a runtime Platform API key; it does not require calling a paid inference API to load skills. Check Platform's own service terms separately.
 
