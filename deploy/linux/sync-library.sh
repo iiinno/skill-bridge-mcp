@@ -12,7 +12,9 @@ if [[ -n "$(git -C "$library" status --porcelain)" ]]; then
   echo "Private checkout has local changes; refusing to overwrite" >&2
   exit 1
 fi
-export GIT_SSH_COMMAND="ssh -i $key -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=8"
+# Ignore unrelated host-wide SSH proxy snippets that may have unsuitable file
+# ownership under a restricted systemd service. Strict known-host checks remain.
+export GIT_SSH_COMMAND="ssh -F /dev/null -i $key -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=8"
 git -C "$library" fetch --quiet origin main
 old="$(git -C "$library" rev-parse HEAD)"
 new="$(git -C "$library" rev-parse origin/main)"

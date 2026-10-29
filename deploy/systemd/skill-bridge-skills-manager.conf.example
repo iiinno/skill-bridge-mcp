@@ -1,0 +1,7 @@
+# Install as ~/.config/systemd/user/skill-bridge-mcp.service.d/skills-manager.conf
+# Keep this override out of the base unit so general OSS users can start with
+# the bundled example library and do not need a private Git checkout.
+[Service]
+Environment=SKILL_BRIDGE_SKILLS_DIR=%h/services/skill-bridge-private-library
+Environment=SKILL_BRIDGE_PROPOSALS_DIR=%h/.local/state/skill-bridge-mcp/proposals
+ReadWritePaths=%h/.local/state/skill-bridge-mcp/proposals

@@ -19,6 +19,11 @@ cp ~/services/skill-bridge-mcp/deploy/systemd/skill-bridge-library-sync.* \
    ~/.config/systemd/user/
 cp ~/services/skill-bridge-mcp/deploy/systemd/skill-bridge-mcp.service \
    ~/.config/systemd/user/
+mkdir -p ~/.config/systemd/user/skill-bridge-mcp.service.d \
+         ~/.local/state/skill-bridge-mcp/proposals
+chmod 700 ~/.local/state/skill-bridge-mcp/proposals
+cp ~/services/skill-bridge-mcp/deploy/systemd/skill-bridge-skills-manager.conf.example \
+   ~/.config/systemd/user/skill-bridge-mcp.service.d/skills-manager.conf
 systemctl --user daemon-reload
 systemctl --user enable --now skill-bridge-library-sync.timer
 systemctl --user restart skill-bridge-mcp.service

@@ -9,15 +9,12 @@ WorkingDirectory=%h/services/skill-bridge-mcp
 ExecStart=/usr/bin/node %h/services/skill-bridge-mcp/server.mjs
 Environment=SKILL_BRIDGE_HOST=127.0.0.1
 Environment=SKILL_BRIDGE_PORT=18787
-Environment=SKILL_BRIDGE_SKILLS_DIR=%h/services/skill-bridge-private-library
-Environment=SKILL_BRIDGE_PROPOSALS_DIR=%h/.local/state/skill-bridge-mcp/proposals
 Restart=on-failure
 RestartSec=5
 NoNewPrivileges=yes
 PrivateTmp=yes
 ProtectSystem=strict
 ProtectHome=read-only
-ReadWritePaths=%h/.local/state/skill-bridge-mcp/proposals
 
 [Install]
 WantedBy=default.target
