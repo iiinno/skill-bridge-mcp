@@ -1,0 +1,16 @@
+node_modules/
+.env
+*.log
+coverage/
+*.dpapi
+*.pem
+*.key
+*.p12
+runtime.env
+.env.*
+!.env.example
+.DS_Store
+.idea/
+.vscode/
+.local/
+.tmp/

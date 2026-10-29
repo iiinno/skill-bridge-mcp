@@ -1,0 +1,20 @@
+[Unit]
+Description=OpenAI Secure MCP Tunnel for Skill Bridge
+Wants=network-online.target
+After=network-online.target skill-bridge-mcp.service
+Requires=skill-bridge-mcp.service
+
+[Service]
+Type=simple
+WorkingDirectory=%h/services/skill-bridge-mcp
+ExecStart=%h/services/skill-bridge-mcp/bin/tunnel-client run --profile skill-bridge --profile-dir %h/.config/skill-bridge-mcp/profiles --health.listen-addr 127.0.0.1:0 --health.url-file %h/.local/state/skill-bridge-mcp/health.url --log.level warn --log.format json
+Restart=on-failure
+RestartSec=8
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=%h/.local/state/skill-bridge-mcp
+
+[Install]
+WantedBy=default.target

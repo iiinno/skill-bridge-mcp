@@ -1,0 +1,24 @@
+{
+  "name": "skill-bridge-mcp",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Dynamic SKILL.md registry exposed through a read-only MCP server",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/iiinno/skill-bridge-mcp.git"
+  },
+  "scripts": {
+    "start": "node server.mjs",
+    "test": "node --test test/*.test.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.32.2",
+    "yaml": "^2.8.1",
+    "zod": "^3.25.0"
+  }
+}

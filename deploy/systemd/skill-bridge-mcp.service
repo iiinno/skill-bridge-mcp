@@ -1,0 +1,20 @@
+[Unit]
+Description=Skill Bridge MCP (read-only SKILL.md registry)
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/services/skill-bridge-mcp
+ExecStart=/usr/bin/node %h/services/skill-bridge-mcp/server.mjs
+Environment=SKILL_BRIDGE_HOST=127.0.0.1
+Environment=SKILL_BRIDGE_PORT=18787
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=read-only
+
+[Install]
+WantedBy=default.target

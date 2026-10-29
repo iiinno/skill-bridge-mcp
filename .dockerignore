@@ -1,0 +1,16 @@
+.git
+.github
+node_modules
+*.log
+.env
+.env.*
+!/.env.example
+*.dpapi
+*.pem
+*.key
+*.p12
+connect-skill-bridge.cmd
+scripts
+test
+docs
+TUNNEL-SETUP.md
